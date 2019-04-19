@@ -29,10 +29,11 @@ It's a simple WPF application using the [Material Design in XAML Toolkit](http:/
 
 ![demo in action](http://g.recordit.co/xhSXhMkSRP.gif "Demo in Action")
 
+@scor4er
 
-PS.: Screen cast by: http://recordit.co/
+### My changes/improvements
 
-[![](https://codescene.io/projects/3401/status.svg) Get more details at **codescene.io**.](https://codescene.io/projects/3401/jobs/latest-successful/results)
+I need this control to support multiple items in a text box separated with some character. The logic will stay the same but when you select the item from the list it won't replace the whole text in a textbox but only the last item (item after specified item separator, comma for example).
 
 
  

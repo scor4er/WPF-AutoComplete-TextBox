@@ -22,6 +22,7 @@
         WindowStyle="None">
 
     <Window.Resources>
+        <providers:CommaSeparatedStatesSuggestionProvider x:Key="CommaSeparatedStatesSuggestionProvider"/>
         <providers:StateSuggestionProvider x:Key="StateSuggestionProvider"/>
         <DataTemplate x:Key="StateTemplate">
             <Grid>
@@ -103,6 +104,25 @@
                                 <TextBlock Text="Loading..." Margin="5" FontSize="14" />
                             </editors:AutoCompleteTextBox.LoadingContent>
                         </editors:AutoCompleteTextBox>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,20,0,0" Orientation="Vertical">
+                        <TextBlock Foreground="{StaticResource PrimaryHueDarkBrush}">States</TextBlock>
+                        <editors:AutoCompleteTextBox MinWidth="100" HorizontalAlignment="Stretch" Background="White"    
+                                                     IsEnabled="True"
+                                                     MultiItemsEnabled="True"
+                                                     DisplayMember="Name" 
+                                                     Style="{StaticResource MaterialAutoCompleteTextBox}"
+                                                     ItemTemplate="{StaticResource ResourceKey=StateTemplate}"
+                                                     Provider="{StaticResource ResourceKey=CommaSeparatedStatesSuggestionProvider}"
+                                                     SelectedItem="{Binding SelectedStateForMultiUsage, Mode=OneWay}"
+                                                     Text="{Binding StatesText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                            <editors:AutoCompleteTextBox.LoadingContent>
+                                <TextBlock Text="Loading..." Margin="5" FontSize="14" />
+                            </editors:AutoCompleteTextBox.LoadingContent>
+                        </editors:AutoCompleteTextBox>
+
+
 
                     </StackPanel>
 

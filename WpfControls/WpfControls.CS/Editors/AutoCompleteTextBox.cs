@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Threading;
 using System.Windows;
@@ -8,6 +8,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WpfControls;
 
 namespace WpfControls.Editors
 {
@@ -19,12 +20,13 @@ namespace WpfControls.Editors
 
         #region "Fields"
 
+        public const string DefaultItemsSeparator = ",";
         public const string PartEditor = "PART_Editor";
         public const string PartPopup = "PART_Popup";
 
         public const string PartSelector = "PART_Selector";
         public static readonly DependencyProperty DelayProperty = DependencyProperty.Register("Delay", typeof(int), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(200));
-        public static readonly DependencyProperty DisplayMemberProperty = DependencyProperty.Register("DisplayMember", typeof(string), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(string.Empty));
+        public static readonly DependencyProperty DisplayMemberProperty = DependencyProperty.Register("DisplayMember", typeof(string), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(string.Empty, OnDisplayMemberChanged));
         public static readonly DependencyProperty IconPlacementProperty = DependencyProperty.Register("IconPlacement", typeof(IconPlacement), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(IconPlacement.Left));
         public static readonly DependencyProperty IconProperty = DependencyProperty.Register("Icon", typeof(object), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IconVisibilityProperty = DependencyProperty.Register("IconVisibility", typeof(Visibility), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(Visibility.Visible));
@@ -37,6 +39,25 @@ namespace WpfControls.Editors
         public static readonly DependencyProperty ProviderProperty = DependencyProperty.Register("Provider", typeof(ISuggestionProvider), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty SelectedItemProperty = DependencyProperty.Register("SelectedItem", typeof(object), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(null, OnSelectedItemChanged));
         public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(string.Empty));
+
+        public static readonly DependencyProperty ItemsSeparatorProperty = DependencyProperty.Register(
+            "ItemsSeparator", typeof(string), typeof(AutoCompleteTextBox), new PropertyMetadata(default(string)));
+
+        public string ItemsSeparator
+        {
+            get { return (string) GetValue(ItemsSeparatorProperty); }
+            set { SetValue(ItemsSeparatorProperty, value); }
+        }
+
+        public static readonly DependencyProperty MultiItemsEnabledProperty = DependencyProperty.Register(
+            "MultiItemsEnabled", typeof(bool), typeof(AutoCompleteTextBox), new PropertyMetadata(default(bool)));
+
+        public bool MultiItemsEnabled
+        {
+            get { return (bool) GetValue(MultiItemsEnabledProperty); }
+            set { SetValue(MultiItemsEnabledProperty, value); }
+        }
+
         public static readonly DependencyProperty MaxLengthProperty = DependencyProperty.Register("MaxLength", typeof(int), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(0));
         public static readonly DependencyProperty CharacterCasingProperty = DependencyProperty.Register("CharacterCasing", typeof(CharacterCasing), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(CharacterCasing.Normal));
         public static readonly DependencyProperty MaxPopUpHeightProperty = DependencyProperty.Register("MaxPopUpHeight", typeof(int), typeof(AutoCompleteTextBox), new FrameworkPropertyMetadata(600));
@@ -211,6 +232,20 @@ namespace WpfControls.Editors
 
         #region "Methods"
 
+        private static void OnDisplayMemberChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            AutoCompleteTextBox act = null;
+            act = d as AutoCompleteTextBox;
+            if (act != null)
+            {
+                var newValue = e.NewValue?.ToString();
+                if (!string.IsNullOrEmpty(newValue))
+                {
+                    act.BindingEvaluator = new BindingEvaluator(new Binding(newValue));
+                }
+            }
+        }
+
         public static void OnSelectedItemChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             AutoCompleteTextBox act = null;
@@ -221,6 +256,7 @@ namespace WpfControls.Editors
                 {
                     act._isUpdatingText = true;
                     act.Editor.Text = act.BindingEvaluator.Evaluate(e.NewValue);
+                    act.Text = act.Editor.Text;
                     act._isUpdatingText = false;
                 }
             }
@@ -252,6 +288,7 @@ namespace WpfControls.Editors
                 {
                     _isUpdatingText = true;
                     Editor.Text = BindingEvaluator.Evaluate(SelectedItem);
+                    Text = Editor.Text;
                     _isUpdatingText = false;
                 }
 
@@ -302,7 +339,17 @@ namespace WpfControls.Editors
             {
                 return dataItem.ToString();
             }
-            return BindingEvaluator.Evaluate(dataItem);
+            var item = BindingEvaluator.Evaluate(dataItem);
+
+            string text = string.Empty;
+            if (MultiItemsEnabled)
+            {
+                text = Editor.Text;
+                int index = text.LastIndexOf(!string.IsNullOrEmpty(ItemsSeparator) ? ItemsSeparator : DefaultItemsSeparator, StringComparison.Ordinal);
+                text = index > 0 ? text.Substring(0, index + 1) : String.Empty;
+            }
+
+            return text + item;
         }
 
         private void OnEditorKeyDown(object sender, KeyEventArgs e)
@@ -312,9 +359,18 @@ namespace WpfControls.Editors
                 if (IsDropDownOpen)
                     SelectionAdapter.HandleKeyDown(e);
                 else
+                {
                     IsDropDownOpen = e.Key == Key.Down || e.Key == Key.Up;
+                    if (!IsDropDownOpen)
+                    {
+                        OpenDropDownOnTextChanged = true;
+                    }
+                }
+
             }
         }
+
+        public bool OpenDropDownOnTextChanged { get; set; }
 
         private void OnEditorLostFocus(object sender, RoutedEventArgs e)
         {
@@ -326,8 +382,18 @@ namespace WpfControls.Editors
 
         private void OnEditorTextChanged(object sender, TextChangedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("Text changed arrived");
             if (_isUpdatingText)
                 return;
+            if (!OpenDropDownOnTextChanged && !IsDropDownOpen)
+            {
+                return;
+            }
+            else
+            {
+                OpenDropDownOnTextChanged = false;
+            }
+
             if (FetchTimer == null)
             {
                 FetchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Delay) };
@@ -383,6 +449,7 @@ namespace WpfControls.Editors
         {
             _isUpdatingText = true;
             Editor.Text = SelectedItem == null ? Filter : GetDisplayText(SelectedItem);
+            Text = Editor.Text;
             Editor.SelectionStart = Editor.Text.Length;
             Editor.SelectionLength = 0;
             _isUpdatingText = false;
@@ -394,9 +461,12 @@ namespace WpfControls.Editors
         {
             if (ItemsSelector.SelectedItem != null)
             {
-                SelectedItem = ItemsSelector.SelectedItem;
+                //TODO: Keep an eye on this. Why it was set second time?
+                //SelectedItem = ItemsSelector.SelectedItem;
                 _isUpdatingText = true;
                 Editor.Text = GetDisplayText(ItemsSelector.SelectedItem);
+                Text = Editor.Text;
+                Editor.CaretIndex = Int32.MaxValue;
                 SetSelectedItem(ItemsSelector.SelectedItem);
                 _isUpdatingText = false;
                 IsDropDownOpen = false;
@@ -407,6 +477,7 @@ namespace WpfControls.Editors
         {
             _isUpdatingText = true;
             Editor.Text = ItemsSelector.SelectedItem == null ? Filter : GetDisplayText(ItemsSelector.SelectedItem);
+            Text = Editor.Text;
             Editor.SelectionStart = Editor.Text.Length;
             Editor.SelectionLength = 0;
             ScrollToSelectedItem();

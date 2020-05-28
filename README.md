@@ -37,5 +37,5 @@ I need this control to support multiple items in a text box separated with some 
 
 Here's how it looks right now:
 
-![demo in action](https://ibb.co/vcg9MMT "Demo in Action") 
+![demo in action](https://i.ibb.co/grHYccf/multi-items-demo.gif "Multiple selection") 
 

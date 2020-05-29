@@ -44,7 +44,7 @@ PS.: Screen cast by: http://recordit.co/
 
 ### My changes/improvements
 
-I need this control to support multiple items in a text box separated with some character. The logic will stay the same but when you select the item from the list it won't replace the whole text in a textbox but only the last item (item after specified item separator, comma for example).
+I need this control to support multiple items in a text box separated with some character. The logic will stay the same but when you select an item from the list it won't replace the whole text in a textbox but only the last item (item after specified item separator, comma for example).
 
 Here's how it looks right now:
 
